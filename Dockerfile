@@ -29,8 +29,9 @@ USER app
 
 EXPOSE 5000
 
+# Healthcheck uses the platform port (falls back to 5000 locally)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD curl -sf http://localhost:5000/health || exit 1
+  CMD sh -c 'curl -sf "http://localhost:${PORT:-5000}/health" || exit 1'
 
-# Gunicorn entry
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "run:app"]
+# Bind Gunicorn to the platform port (falls back to 5000 locally)
+CMD ["sh","-c","gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --timeout 120 run:app"]
