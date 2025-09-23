@@ -1,29 +1,24 @@
-# Core web framework
+# Web
 flask==2.3.3
 flask-cors==4.0.0
 gunicorn==21.2.0
 
-# Machine Learning
-sentence-transformers==2.2.2
+# ML stack (compatible set)
+sentence-transformers==2.7.0
+transformers==4.44.2
+huggingface_hub==0.24.6
 scikit-learn==1.3.0
-torch==2.0.1
-transformers==4.33.2
+torch==2.0.1          # keep for py3.9 compatibility + smaller image
 
-# Data processing
+# Data
 pandas==2.0.3
 numpy==1.24.3
 
 # Geospatial
 geopy==2.3.0
 
-# HTTP requests
+# HTTP & utils
 requests==2.31.0
-
-# Utilities
 python-dotenv==1.0.0
-
-# Optional: For model persistence
 joblib==1.3.2
-
-# Optional: For better JSON handling
 ujson==5.8.0
