@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Build tools only for pip build time; removed after install
+# Build deps (removed after pip install)
 RUN apt-get update && apt-get install -y --no-install-recommends \
       gcc g++ curl \
  && rm -rf /var/lib/apt/lists/*
@@ -18,20 +18,18 @@ RUN python -m pip install --upgrade pip setuptools wheel \
  && apt-get purge -y --auto-remove gcc g++ \
  && rm -rf /var/lib/apt/lists/*
 
-# Copy only sources (big folders ignored by .dockerignore)
+# Copy sources (big folders should be ignored by .dockerignore)
 COPY . .
 
-# Ensure writeable cache dirs
-RUN mkdir -p data models/trained_models .hf_cache \
+# Create user & writable dirs
+RUN mkdir -p .hf_cache \
  && groupadd -r app && useradd --no-log-init -r -g app app \
  && chown -R app:app /app
 USER app
 
-EXPOSE 5000
-
-# Healthcheck uses the platform port (falls back to 5000 locally)
+# Healthcheck MUST use platform PORT
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD sh -c 'curl -sf "http://localhost:${PORT:-5000}/health" || exit 1'
 
-# Bind Gunicorn to the platform port (falls back to 5000 locally)
+# Bind to platform PORT (falls back to 5000 locally)
 CMD ["sh","-c","gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --timeout 120 run:app"]
