@@ -39,7 +39,7 @@ def init_ml_system():
         else:
             # Try to load from GitHub (replace with your GitHub details)
             github_url = get_github_dataset_url(
-                username="YOUR_GITHUB_USERNAME",  # Replace with your username
+                username="amalf238",  # Replace with your username
                 repo="handyman-ml-api", 
                 file_path="data/handyman_database_3000.json"
             )
