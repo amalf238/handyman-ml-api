@@ -1,31 +1,21 @@
 """
-Main entry point for the Handyman ML API (Gunicorn-friendly)
-- Exposes `app` for CMD: gunicorn ... run:app
-- Initializes ML lazily (first request) or eagerly if WARMUP_ON_START=true
-- Adds /health and /reload endpoints without changing src/
+Handyman ML API - entrypoint for Gunicorn (run:app) and local dev.
+Initializes ML once (lazy) and exposes /health and /reload.
 """
-import os
-import sys
-import threading
-import traceback
-from typing import Tuple
+import os, sys, threading, traceback
 from typing import Tuple, Optional
 
-
 # Ensure src/ is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from src.api_server import app as _app, init_ml_system    # your existing init
-from src.utils_py import setup_logging                    # your existing logging
+from src.api_server import app as _app, init_ml_system
+from src.utils import setup_logging
 
-# ---- one-time ML init state ----
 _ml_ready = False
 _ml_lock = threading.Lock()
-from typing import Optional
 _ml_error: Optional[Tuple[str, str]] = None  # (message, traceback)
 
 def _ensure_ml_ready(force: bool = False):
-    """Initialize ML system once (thread-safe)."""
     global _ml_ready, _ml_error
     if _ml_ready and not force:
         return
@@ -34,7 +24,7 @@ def _ensure_ml_ready(force: bool = False):
             return
         try:
             setup_logging()
-            init_ml_system()          # loads dataset + trains models
+            init_ml_system(force=force)
             _ml_ready = True
             _ml_error = None
             print("✅ ML system initialized")
@@ -48,7 +38,7 @@ def _ensure_ml_ready(force: bool = False):
 if os.getenv("WARMUP_ON_START", "false").lower() == "true":
     threading.Thread(target=_ensure_ml_ready, name="ml-warmup", daemon=True).start()
 
-# ---- attach small system endpoints here ----
+# System endpoints layered here
 from flask import jsonify, request
 
 @_app.get("/health")
@@ -63,7 +53,6 @@ def _reload():
     _ensure_ml_ready(force=True)
     return jsonify({"reloaded": True, "ml_ready": _ml_ready, "error": _ml_error[0] if _ml_error else None})
 
-# lazy init on first real request
 @_app.before_request
 def _lazy_init():
     if request.path in ("/health", "/reload"):
@@ -71,14 +60,13 @@ def _lazy_init():
     if not _ml_ready:
         _ensure_ml_ready()
 
-# Gunicorn entrypoint
+# Expose for Gunicorn
 app = _app
 
-# Local dev (python run.py)
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', '5000'))
-    debug = os.environ.get('DEBUG', 'False').lower() == 'true'
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", "5000"))
+    debug = os.environ.get("DEBUG", "false").lower() == "true"
     print(f"🚀 Starting Handyman ML API on port {port} (debug={debug})")
     if os.getenv("WARMUP_ON_START", "true").lower() == "true":
         _ensure_ml_ready()
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    app.run(host="0.0.0.0", port=port, debug=debug)

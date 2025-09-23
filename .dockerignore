@@ -2,16 +2,14 @@
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
 *.log
 *.ipynb_checkpoints
-.env
 .venv/
 venv/
 node_modules/
-data/
 models/
-.cache/
-datasets/
+tests/
 dist/
 build/
+# If you want to ship a local dataset inside the image, DELETE this next line
+data/
