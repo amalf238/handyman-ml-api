@@ -117,3 +117,70 @@ def analyze_image_description():
     except Exception as e:
         log.exception("analyze_image_description failed")
         return jsonify(create_error_response(str(e))), 500
+
+@app.post("/predict")
+def predict():
+    """New endpoint for Flutter app compatibility"""
+    try:
+        if not ml_system or not ml_system.trained:
+            return jsonify(create_error_response("ML system not ready")), 500
+
+        data = request.get_json() or {}
+        description = data.get("description", "").strip()
+        max_workers = int(data.get("max_workers", 5))
+        
+        if not description:
+            return jsonify(create_error_response("Description is required")), 400
+
+        # Get recommendations using your existing ML system
+        recs = ml_system.get_recommendations(description, max_workers)
+        
+        # Format for Flutter app
+        recommendations = []
+        for r in recs:
+            worker = r["worker"]
+            recommendations.append({
+                "worker_id": str(worker.get("worker_id", "")),
+                "worker_name": worker.get("worker_name", "Unknown Worker"),
+                "specialization": worker.get("service_type", ""),
+                "match_score": round(r["service_confidence"], 2),
+                "skills": worker.get("skills", []),
+                "hourly_rate": float(worker.get("pricing", {}).get("hourly_wage_lkr", 0)),
+                "rating": float(worker.get("rating", 0)),
+                "is_available": worker.get("availability", {}).get("available_today", False),
+                "reason": f"Best match for {worker.get('service_type', 'service')} in your area"
+            })
+        
+        return jsonify({
+            "success": True,
+            "recommendations": recommendations
+        })
+        
+    except Exception as e:
+        log.exception("predict endpoint failed")
+        return jsonify(create_error_response(str(e))), 500
+
+# --------- health check endpoint ---------
+@app.get("/health")
+def health_check():
+    """Health check endpoint"""
+    try:
+        status = "ready" if ml_system and ml_system.trained else "not ready"
+        return jsonify({
+            "status": "ok",
+            "ml_system": status,
+            "message": "API is running"
+        })
+    except Exception as e:
+        log.exception("health check failed")
+        return jsonify(create_error_response(str(e))), 500
+
+# --------- initialization ---------
+if __name__ == "__main__":
+    try:
+        init_ml_system()
+        port = int(os.getenv("PORT", 8000))
+        app.run(host="0.0.0.0", port=port, debug=False)
+    except Exception as e:
+        log.error(f"Failed to start server: {str(e)}")
+        raise
